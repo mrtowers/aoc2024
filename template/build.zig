@@ -12,16 +12,12 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("main.zig"),
     });
 
-    b.installArtifact(exe);
-
     const test_app = b.addTest(.{
         .root_source_file = b.path("main.zig"),
     });
     const test_run = b.addRunArtifact(test_app);
-    b.default_step.dependOn(&test_run.step);
-
-    const write_input = b.addInstallFile(b.path("input.txt"), "bin/input.txt");
-    b.default_step.dependOn(&write_input.step);
+    const test_step = b.step("test", "test program");
+    test_step.dependOn(&test_run.step);
 
     const run = b.addRunArtifact(exe);
     const run_step = b.step("run", "run program");
