@@ -9,8 +9,8 @@ pub fn main() !void {
 }
 
 fn day1(ally: Allocator, input: io.AnyReader) !i32 {
-    const list1 = std.AutoHashMap(i32, i32).init(ally);
-    const list2 = std.AutoHashMap(i32, i32).init(ally);
+    var list1 = std.AutoHashMap(i32, i32).init(ally);
+    var list2 = std.AutoHashMap(i32, i32).init(ally);
 
     while (true) {
         const n1 = parseNumber(ally, input) catch {
@@ -24,19 +24,50 @@ fn day1(ally: Allocator, input: io.AnyReader) !i32 {
         res2.value_ptr.* += 1;
     }
 
-    const arr1 = try std.ArrayList(i32).initCapacity(ally, list1.count());
+    var arr1 = try std.ArrayList(i32).initCapacity(ally, list1.count());
     var list1_iter = list1.keyIterator();
     while (list1_iter.next()) |entry| {
-        arr1.append(entry);
+        try arr1.append(entry.*);
     }
-    std.mem.sort(i32, arr1.items, .{}, std.sort.asc);
+    std.mem.sort(i32, arr1.items, {}, std.sort.asc(i32));
 
-    const arr2 = try std.ArrayList(i32).initCapacity(ally, list2.count());
+    var arr2 = try std.ArrayList(i32).initCapacity(ally, list2.count());
     var list2_iter = list2.keyIterator();
     while (list2_iter.next()) |entry| {
-        arr2.append(entry);
+        try arr2.append(entry.*);
     }
-    std.mem.sort(i32, arr2.items, .{}, std.sort.asc);
+    std.mem.sort(i32, arr2.items, {}, std.sort.asc(i32));
+
+    var idx1: usize = 0;
+    var idx2: usize = 0;
+    var sum: u32 = 0;
+    while (true) {
+        sum += @abs(arr1.items[idx1] - arr2.items[idx2]);
+        if (getAndUpdate(&list1, @as(usize, idx1))) {
+            idx1 += 1;
+        }
+        if (getAndUpdate(&list2, idx2)) {
+            idx2 += 1;
+        }
+
+        if (idx1 >= arr1.items.len) {
+            break;
+        }
+        if (idx2 >= arr2.items.len) {
+            break;
+        }
+    }
+}
+
+/// returns true if not found or decremented to 0
+fn getAndUpdate(map: *std.AutoHashMap(i32, i32), idx: i32) bool {
+    const value = map.getPtr(idx);
+    if (value) |v| {
+        v.* -= 1;
+        return v == 0;
+    } else {
+        return true;
+    }
 }
 
 fn parseNumber(ally: Allocator, input: io.AnyReader) !i32 {
@@ -72,7 +103,8 @@ test "main" {
         \\3   9
         \\3   3
     ;
-    try testing.expectEqual(11, day1(testing.allocator, io.fixedBufferStream(input)));
+    var stream = io.fixedBufferStream(input);
+    try testing.expectEqual(11, day1(testing.allocator, stream.reader().any()));
 }
 
 test "parseNumber" {
